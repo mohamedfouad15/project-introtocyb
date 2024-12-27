@@ -1,0 +1,56 @@
+# Web Penetration Testing Report: OWASP Juice Shop Attack
+
+## Executive Summary
+- **Purpose of the test**: This test was conducted to assess the security vulnerabilities of the OWASP Juice Shop application.
+- **Key Findings**: Critical vulnerabilities were identified, including brute-force login weaknesses, admin path discovery, and potential security flaws in web application interaction.
+
+## Scope and Methodology
+- **Scope**: Testing of the OWASP Juice Shop website hosted on Docker and Heroku.
+- **Approach**: Black-box testing with no prior access to the internal code or structure.
+- **Tools Used**: Hydra, Burp Suite, Gobuster, Docker, Ping.
+
+## Vulnerability Findings
+### 1. Enumeration to Find Admin Path
+   - **Description**: Using tools like Gobuster, hidden paths and endpoints of the Juice Shop application were discovered.
+   - **Risk**: The exposed admin path could lead to further unauthorized access if exploited.
+   - **Evidence**: 
+     - Command used to perform directory brute-forcing: 
+       ```bash
+       gobuster dir -w custom_wordlist.txt -u http://localhost:3000
+       ```
+     - Successful enumeration of admin paths.
+   - **Remediation**: Obfuscate admin paths and restrict unauthorized access using proper authentication mechanisms.
+
+### 2. Brute Force on Admin Credentials
+   - **Description**: A brute-force attack was performed on the admin login page using Hydra. The email `admin@juice-sh.op` was paired with a dictionary attack leveraging the `rockyou.txt` wordlist.
+   - **Command**: 
+     ```bash
+     hydra -l admin@juice-sh.op -P /usr/share/wordlists/rockyou.txt 54.220.192.176 https-post-form "/rest/user/login:email=^USER^&password=^PASS^:F=Invalid email or password" -V -I
+     ```
+   - **Risk**: The lack of account lockout or rate limiting allowed the attacker to gain full access to the application.
+   - **Evidence**: Hydra successfully logged in after several attempts with a valid password.
+   - **Remediation**: Implement rate-limiting and account lockout policies to mitigate brute-force attacks.
+
+### 3. XSS in Product Search
+   - **Description**: An XSS vulnerability was found in the product search field, where user input is not properly sanitized before being reflected back to the page.
+   - **Risk**: The attacker could inject malicious JavaScript that would execute in the victim's browser, potentially stealing session cookies.
+   - **Evidence**: Malicious JavaScript injected into the search field caused unintended script execution.
+   - **Remediation**: Sanitize all user inputs and implement Content Security Policy (CSP).
+
+## Exploitation and Attack Simulation
+   - **Tools and Techniques Used**: Hydra for brute force, Gobuster for directory brute-forcing, Ping to verify the availability of the target server.
+   - **Outcome**: Successful brute force login gained full admin access, exposing sensitive functionality of the app.
+   - **Command** to check server status:
+     ```bash
+     ping -c 1 juice-shop.herokuapp.com
+     ```
+   - **Impact**: Unauthorized admin access was granted, posing a critical security risk.
+
+## Conclusion
+- **Security Posture**: The Juice Shop has several severe security issues, including predictable paths, weak authentication, and cross-site scripting vulnerabilities.
+- **Risk Level**: High; the vulnerabilities pose serious threats to both user data and system integrity.
+- **Next Steps for Remediation**: 
+   - Obfuscate sensitive paths (e.g., admin login page).
+   - Implement rate-limiting and account lockout to prevent brute-force attacks.
+   - Secure all user inputs to prevent XSS.
+   - Regularly test the application for vulnerabilities using automated tools.
